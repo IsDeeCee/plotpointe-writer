@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}PlotPointe Writer - Script Rewriter{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Script Rewriter</h1>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Transform Your Script</h5>
+    </div>
+    <div class="card-body">
+        <form id="scriptForm" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="script_file" class="form-label">Upload a DOCX file (optional)</label>
+                <input class="form-control" type="file" id="script_file" name="script_file" accept=".docx">
+                <div class="form-text">Or enter your script text in the area below</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="script_text" class="form-label">Script Text</label>
+                <textarea class="form-control" id="script_text" name="script_text" rows="8" placeholder="Enter your script text here or upload a DOCX file..."></textarea>
+            </div>
+            
+            <div class="mb-3">
+                <label for="target_char_count" class="form-label">Target Character Count</label>
+                <input type="number" class="form-control" id="target_char_count" name="target_char_count" min="100" max="50000" value="5000">
+                <div class="form-text">The rewritten script will aim for approximately this many characters</div>
+            </div>
+            
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary" id="rewriteBtn">
+                    <i class="fas fa-sync-alt"></i> Rewrite Script
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="progressContainer" class="card mb-4 d-none">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Rewriting Progress</h5>
+    </div>
+    <div class="card-body">
+        <p id="progressMessage">Starting rewrite process...</p>
+        <div class="progress mb-3">
+            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+        </div>
+        <p class="form-text">This may take a few minutes depending on the script length.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Original Script</h5>
+            </div>
+            <div class="card-body">
+                <textarea id="originalText" class="form-control h-100" readonly rows="15" placeholder="Your original script will appear here..."></textarea>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Rewritten Script</h5>
+            </div>
+            <div class="card-body">
+                <textarea id="rewrittenText" class="form-control h-100" readonly rows="15" placeholder="The rewritten script will appear here..."></textarea>
+            </div>
+            <div class="card-footer">
+                <button id="downloadBtn" class="btn btn-success w-100 d-none">
+                    <i class="fas fa-download"></i> Download as DOCX
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        let taskId = null;
+        let pollInterval = null;
+        
+        // Handle form submission
+        $('#scriptForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate inputs
+            const scriptText = $('#script_text').val();
+            const scriptFile = $('#script_file')[0].files[0];
+            const targetCharCount = $('#target_char_count').val();
+            
+            if (!scriptText && !scriptFile) {
+                alert('Please enter script text or upload a file');
+                return;
+            }
+            
+            if (!targetCharCount || isNaN(targetCharCount) || targetCharCount < 100) {
+                alert('Please enter a valid character count (minimum 100)');
+                return;
+            }
+            
+            // Prepare form data
+            const formData = new FormData();
+            if (scriptFile) {
+                formData.append('script_file', scriptFile);
+            }
+            formData.append('script_text', scriptText);
+            formData.append('target_char_count', targetCharCount);
+            
+            // Show progress container and disable form
+            $('#progressContainer').removeClass('d-none');
+            $('#rewriteBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+            
+            // Copy text to original box if provided
+            if (scriptText) {
+                $('#originalText').val(scriptText);
+            }
+            
+            // Submit the request
+            $.ajax({
+                url: '/api/rewrite-script',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status === 'processing') {
+                        taskId = response.task_id;
+                        startPolling(taskId);
+                    } else {
+                        showError(response.message || 'Unknown error occurred');
+                    }
+                },
+                error: function() {
+                    showError('Server error occurred');
+                }
+            });
+        });
+        
+        // Poll for task status
+        function startPolling(id) {
+            pollInterval = setInterval(function() {
+                $.get('/api/task-status/' + id, function(response) {
+                    updateProgress(response);
+                    
+                    if (response.status === 'completed' || response.status === 'error') {
+                        clearInterval(pollInterval);
+                        $('#rewriteBtn').prop('disabled', false).html('<i class="fas fa-sync-alt"></i> Rewrite Script');
+                    }
+                });
+            }, 2000);
+        }
+        
+        // Update progress UI
+        function updateProgress(response) {
+            $('#progressMessage').text(response.message);
+            $('#progressBar').css('width', response.progress + '%');
+            
+            if (response.status === 'completed') {
+                $('#progressBar').removeClass('progress-bar-animated').addClass('bg-success');
+                $('#rewrittenText').val(response.result);
+                $('#downloadBtn').removeClass('d-none').attr('data-task-id', taskId);
+            } else if (response.status === 'error') {
+                $('#progressBar').removeClass('progress-bar-animated').addClass('bg-danger');
+                showError(response.message);
+            }
+        }
+        
+        // Handle download button
+        $(document).on('click', '#downloadBtn', function() {
+            const id = $(this).attr('data-task-id');
+            if (id) {
+                window.location.href = '/api/download-docx/' + id;
+            }
+        });
+        
+        // Handle file input change
+        $('#script_file').on('change', function() {
+            const file = this.files[0];
+            if (file) {
+                // Clear textarea if file is selected
+                $('#script_text').val('');
+                
+                // If it's a docx, try to read it
+                if (file.name.endsWith('.docx')) {
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        // We can't read docx content directly in the browser,
+                        // but we can show the filename
+                        $('#script_text').attr('placeholder', 'File selected: ' + file.name);
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+            }
+        });
+        
+        // Show error message
+        function showError(message) {
+            $('#progressMessage').html('<span class="text-danger"><i class="fas fa-exclamation-circle"></i> ' + message + '</span>');
+        }
+    });
+</script>
+{% endblock %}

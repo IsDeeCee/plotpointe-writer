@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}PlotPointe Writer - Story Writer{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Story Writer</h1>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Generate a Story</h5>
+    </div>
+    <div class="card-body">
+        <form id="storyForm" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="plot_file" class="form-label">Upload a DOCX file with plot ideas (optional)</label>
+                <input class="form-control" type="file" id="plot_file" name="plot_file" accept=".docx">
+                <div class="form-text">Or enter your plot ideas in the area below</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="plot_ideas" class="form-label">Plot Ideas</label>
+                <textarea class="form-control" id="plot_ideas" name="plot_ideas" rows="8" placeholder="Enter your plot ideas here or upload a DOCX file..."></textarea>
+            </div>
+            
+            <div class="mb-3">
+                <label for="min_word_count" class="form-label">Minimum Word Count</label>
+                <input type="number" class="form-control" id="min_word_count" name="min_word_count" min="500" max="25000" value="10000">
+                <div class="form-text">The generated story will have at least this many words (max 25,000)</div>
+            </div>
+            
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary" id="generateBtn">
+                    <i class="fas fa-book-open"></i> Generate Story
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="progressContainer" class="card mb-4 d-none">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Generation Progress</h5>
+    </div>
+    <div class="card-body">
+        <p id="progressMessage">Starting story generation...</p>
+        <div class="progress mb-3">
+            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+        </div>
+        <p class="form-text">This may take several minutes depending on the requested word count.</p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">Generated Story</h5>
+    </div>
+    <div class="card-body">
+        <div id="storyResult" class="d-none">
+            <h3 id="storyTitle" class="mb-3"></h3>
+            <div id="storyContent" class="mb-4"></div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <span id="wordCount" class="text-muted"></span>
+                <button id="downloadBtn" class="btn btn-success">
+                    <i class="fas fa-download"></i> Download as DOCX
+                </button>
+            </div>
+        </div>
+        <div id="storyPlaceholder">
+            <p class="text-center text-muted my-5">Your generated story will appear here...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        let taskId = null;
+        let pollInterval = null;
+        
+        // Handle form submission
+        $('#storyForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate inputs
+            const plotIdeas = $('#plot_ideas').val();
+            const plotFile = $('#plot_file')[0].files[0];
+            const minWordCount = $('#min_word_count').val();
+            
+            if (!plotIdeas && !plotFile) {
+                alert('Please enter plot ideas or upload a file');
+                return;
+            }
+            
+            if (!minWordCount || isNaN(minWordCount) || minWordCount < 500 || minWordCount > 25000) {
+                alert('Please enter a valid word count (between 500 and 25,000)');
+                return;
+            }
+            
+            // Prepare form data
+            const formData = new FormData();
+            if (plotFile) {
+                formData.append('plot_file', plotFile);
+            }
+            formData.append('plot_ideas', plotIdeas);
+            formData.append('min_word_count', minWordCount);
+            
+            // Show progress container and disable form
+            $('#progressContainer').removeClass('d-none');
+            $('#generateBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+            
+            // Reset result area
+            $('#storyPlaceholder').show();
+            $('#storyResult').addClass('d-none');
+            
+            // Submit the request
+            $.ajax({
+                url: '/api/generate-story',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status === 'processing') {
+                        taskId = response.task_id;
+                        startPolling(taskId);
+                    } else {
+                        showError(response.message || 'Unknown error occurred');
+                    }
+                },
+                error: function() {
+                    showError('Server error occurred');
+                }
+            });
+        });
+        
+        // Poll for task status
+        function startPolling(id) {
+            pollInterval = setInterval(function() {
+                $.get('/api/task-status/' + id, function(response) {
+                    updateProgress(response);
+                    
+                    if (response.status === 'completed' || response.status === 'error') {
+                        clearInterval(pollInterval);
+                        $('#generateBtn').prop('disabled', false).html('<i class="fas fa-book-open"></i> Generate Story');
+                    }
+                });
+            }, 2000);
+        }
+        
+        // Update progress UI
+        function updateProgress(response) {
+            $('#progressMessage').text(response.message);
+            $('#progressBar').css('width', response.progress + '%');
+            
+            if (response.status === 'completed') {
+                $('#progressBar').removeClass('progress-bar-animated').addClass('bg-success');
+                displayGeneratedStory(response.result);
+            } else if (response.status === 'error') {
+                $('#progressBar').removeClass('progress-bar-animated').addClass('bg-danger');
+                showError(response.message);
+            }
+        }
+        
+        // Display the generated story
+        function displayGeneratedStory(content) {
+            // Extract title and main content
+            const titleMatch = content.match(/Title:(.*?)$/m);
+            const title = titleMatch ? titleMatch[1].trim() : 'Generated Story';
+            
+            // Remove Title: and Text: headers for the main content
+            let mainContent = content.replace(/^Title:.*?$/m, '').replace(/^Text:/m, '').trim();
+            
+            // Convert line breaks to paragraphs
+            mainContent = mainContent.split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('');
+            
+            // Count words
+            const wordCount = mainContent.split(/\s+/).length;
+            
+            // Update the DOM
+            $('#storyTitle').text(title);
+            $('#storyContent').html(mainContent);
+            $('#wordCount').text(`Word count: ${wordCount}`);
+            $('#downloadBtn').attr('data-task-id', taskId);
+            
+            // Show the result
+            $('#storyPlaceholder').hide();
+            $('#storyResult').removeClass('d-none');
+            
+            // Scroll to the result
+            $('html, body').animate({
+                scrollTop: $('#storyResult').offset().top - 100
+            }, 500);
+        }
+        
+        // Handle download button
+        $(document).on('click', '#downloadBtn', function() {
+            const id = $(this).attr('data-task-id');
+            if (id) {
+                window.location.href = '/api/download-story/' + id;
+            }
+        });
+        
+        // Show error message
+        function showError(message) {
+            $('#progressMessage').html('<span class="text-danger"><i class="fas fa-exclamation-circle"></i> ' + message + '</span>');
+        }
+    });
+</script>
+{% endblock %}

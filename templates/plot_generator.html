@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}PlotPointe Writer - Plot Generator{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Plot Generator</h1>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Generate a Plot Structure</h5>
+    </div>
+    <div class="card-body">
+        <form id="plotForm" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="prompt_file" class="form-label">Upload a DOCX file with plot prompt (optional)</label>
+                <input class="form-control" type="file" id="prompt_file" name="prompt_file" accept=".docx">
+                <div class="form-text">Or enter your plot prompt in the area below</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="plot_prompt" class="form-label">Plot Prompt</label>
+                <textarea class="form-control" id="plot_prompt" name="plot_prompt" rows="8" placeholder="Enter your plot prompt here or upload a DOCX file..."></textarea>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="paragraph_count" class="form-label">Number of Paragraphs</label>
+                    <input type="number" class="form-control" id="paragraph_count" name="paragraph_count" min="3" max="10" value="6">
+                    <div class="form-text">How many major sections in the plot (3-10)</div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="progressions_per_paragraph" class="form-label">Progressions per Paragraph</label>
+                    <input type="number" class="form-control" id="progressions_per_paragraph" name="progressions_per_paragraph" min="2" max="10" value="6">
+                    <div class="form-text">How many plot points per section (2-10)</div>
+                </div>
+            </div>
+            
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary" id="generateBtn">
+                    <i class="fas fa-project-diagram"></i> Generate Plot Structure
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="progressContainer" class="card mb-4 d-none">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Generation Progress</h5>
+    </div>
+    <div class="card-body">
+        <p id="progressMessage">Starting plot generation...</p>
+        <div class="progress mb-3">
+            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+        </div>
+        <p class="form-text">This may take a few minutes.</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">Generated Plot Structure</h5>
+    </div>
+    <div class="card-body">
+        <div id="plotResult" class="d-none">
+            <div id="plotContent" class="mb-4"></div>
+            <button id="downloadBtn" class="btn btn-success">
+                <i class="fas fa-download"></i> Download as DOCX
+            </button>
+        </div>
+        <div id="plotPlaceholder">
+            <p class="text-center text-muted my-5">Your generated plot structure will appear here...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        let taskId = null;
+        let pollInterval = null;
+        
+        // Handle form submission
+        $('#plotForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate inputs
+            const plotPrompt = $('#plot_prompt').val();
+            const promptFile = $('#prompt_file')[0].files[0];
+            const paragraphCount = $('#paragraph_count').val();
+            const progressionsPerParagraph = $('#progressions_per_paragraph').val();
+            
+            if (!plotPrompt && !promptFile) {
+                alert('Please enter a plot prompt or upload a file');
+                return;
+            }
+            
+            if (!paragraphCount || isNaN(paragraphCount) || paragraphCount < 3 || paragraphCount > 10) {
+                alert('Please enter a valid paragraph count (between 3 and 10)');
+                return;
+            }
+            
+            if (!progressionsPerParagraph || isNaN(progressionsPerParagraph) || progressionsPerParagraph < 2 || progressionsPerParagraph > 10) {
+                alert('Please enter a valid number for progressions per paragraph (between 2 and 10)');
+                return;
+            }
+            
+            // Prepare form data
+            const formData = new FormData();
+            if (promptFile) {
+                formData.append('prompt_file', promptFile);
+            }
+            formData.append('plot_prompt', plotPrompt);
+            formData.append('paragraph_count', paragraphCount);
+            formData.append('progressions_per_paragraph', progressionsPerParagraph);
+            
+            // Show progress container and disable form
+            $('#progressContainer').removeClass('d-none');
+            $('#generateBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+            
+            // Reset result area
+            $('#plotPlaceholder').show();
+            $('#plotResult').addClass('d-none');
+            
+            // Submit the request
+            $.ajax({
+                url: '/api/generate-plot',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status === 'processing') {
+                        taskId = response.task_id;
+                        startPolling(taskId);
+                    } else {
+                        showError(response.message || 'Unknown error occurred');
+                    }
+                },
+                error: function() {
+                    showError('Server error occurred');
+                }
+            });
+        });
+        
+        // Poll for task status
+        function startPolling(id) {
+            pollInterval = setInterval(function() {
+                $.get('/api/task-status/' + id, function(response) {
+                    updateProgress(response);
+                    
+                    if (response.status === 'completed' || response.status === 'error') {
+                        clearInterval(pollInterval);
+                        $('#generateBtn').prop('disabled', false).html('<i class="fas fa-project-diagram"></i> Generate Plot Structure');
+                    }
+                });
+            }, 2000);
+        }
+        
+        // Update progress UI
+        function updateProgress(response) {
+            $('#progressMessage').text(response.message);
+            $('#progressBar').css('width', response.progress + '%');
+            
+            if (response.status === 'completed') {
+                $('#progressBar').removeClass('progress-bar-animated').addClass('bg-success');
+                displayGeneratedPlot(response.result);
+            } else if (response.status === 'error') {
+                $('#progressBar').removeClass('progress-bar-animated').addClass('bg-danger');
+                showError(response.message);
+            }
+        }
+        
+        // Display the generated plot
+        function displayGeneratedPlot(content) {
+            // Convert markdown to HTML
+            let htmlContent = '';
+            
+            // Process content by paragraphs
+            const paragraphs = content.split('\n\n');
+            for (const para of paragraphs) {
+                if (para.trim()) {
+                    // Check if this is a header (starts with ** or has multiple asterisks)
+                    if (para.trim().startsWith('**') && para.trim().includes('**')) {
+                        // Convert markdown header to HTML
+                        const headerText = para.replace(/\*\*/g, '').trim();
+                        htmlContent += `<h3 class="mt-4 mb-3">${headerText}</h3>`;
+                    } else {
+                        // Regular paragraph
+                        // Format numbered points
+                        const formattedPara = para.replace(/(\d+\.\s+\(Progression #\d+\))/g, '<strong>$1</strong>');
+                        htmlContent += `<p>${formattedPara}</p>`;
+                    }
+                }
+            }
+            
+            // Update the DOM
+            $('#plotContent').html(htmlContent);
+            $('#downloadBtn').attr('data-task-id', taskId);
+            
+            // Show the result
+            $('#plotPlaceholder').hide();
+            $('#plotResult').removeClass('d-none');
+            
+            // Scroll to the result
+            $('html, body').animate({
+                scrollTop: $('#plotResult').offset().top - 100
+            }, 500);
+        }
+        
+        // Handle download button
+        $(document).on('click', '#downloadBtn', function() {
+            const id = $(this).attr('data-task-id');
+            if (id) {
+                window.location.href = '/api/download-plot/' + id;
+            }
+        });
+        
+        // Show error message
+        function showError(message) {
+            $('#progressMessage').html('<span class="text-danger"><i class="fas fa-exclamation-circle"></i> ' + message + '</span>');
+        }
+    });
+</script>
+{% endblock %}

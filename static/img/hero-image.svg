@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#040c00" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#07e42d" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg-gradient)" rx="10" ry="10"/>
+  
+  <!-- Book or manuscript -->
+  <rect x="150" y="150" width="500" height="350" rx="5" ry="5" fill="#fff" stroke="#ddd" stroke-width="2"/>
+  
+  <!-- Book pages -->
+  <rect x="155" y="155" width="490" height="340" rx="5" ry="5" fill="#f9f9f9"/>
+  
+  <!-- Text lines represented by rectangles -->
+  <rect x="200" y="200" width="400" height="8" rx="4" ry="4" fill="#bcf7c3"/>
+  <rect x="200" y="220" width="380" height="8" rx="4" ry="4" fill="#bcf7c3"/>
+  <rect x="200" y="240" width="410" height="8" rx="4" ry="4" fill="#bcf7c3"/>
+  <rect x="200" y="260" width="340" height="8" rx="4" ry="4" fill="#bcf7c3"/>
+  <rect x="200" y="280" width="390" height="8" rx="4" ry="4" fill="#bcf7c3"/>
+  <rect x="200" y="300" width="370" height="8" rx="4" ry="4" fill="#bcf7c3"/>
+  
+  <!-- Cursor/typing effect -->
+  <rect x="200" y="330" width="150" height="8" rx="4" ry="4" fill="#07e42d"/>
+  <rect x="360" y="330" width="3" height="15" fill="#07e42d">
+    <animate attributeName="opacity" values="0;1;0" dur="1.5s" repeatCount="indefinite"/>
+  </rect>
+  
+  <!-- Floating ideas/words -->
+  <g opacity="0.7">
+    <text x="120" y="140" font-family="Arial" font-size="18" fill="#07e42d" transform="rotate(-10, 120, 140)">Story</text>
+    <text x="630" y="180" font-family="Arial" font-size="16" fill="#07e42d" transform="rotate(5, 630, 180)">Character</text>
+    <text x="580" y="440" font-family="Arial" font-size="20" fill="#07e42d" transform="rotate(-5, 580, 440)">Plot</text>
+    <text x="100" y="380" font-family="Arial" font-size="17" fill="#07e42d" transform="rotate(8, 100, 380)">Script</text>
+    <text x="670" y="330" font-family="Arial" font-size="15" fill="#07e42d" transform="rotate(-8, 670, 330)">Narrative</text>
+  </g>
+  
+  <!-- AI sparkle elements -->
+  <g>
+    <circle cx="400" cy="100" r="5" fill="#07e42d">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="200" cy="450" r="4" fill="#07e42d">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="600" cy="480" r="6" fill="#07e42d">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="700" cy="250" r="3" fill="#07e42d">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="3.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="90" cy="280" r="5" fill="#07e42d">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2.8s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- Connection lines representing AI assistance -->
+  <g stroke="#07e42d" stroke-width="1.5" opacity="0.5">
+    <path d="M 400 100 Q 380 200, 360 330" fill="none">
+      <animate attributeName="stroke-dasharray" values="1,20;5,10;1,20" dur="4s" repeatCount="indefinite"/>
+    </path>
+    <path d="M 700 250 Q 550 290, 400 330" fill="none">
+      <animate attributeName="stroke-dasharray" values="1,15;5,8;1,15" dur="3s" repeatCount="indefinite"/>
+    </path>
+    <path d="M 90 280 Q 150 300, 200 330" fill="none">
+      <animate attributeName="stroke-dasharray" values="1,10;5,5;1,10" dur="3.5s" repeatCount="indefinite"/>
+    </path>
+  </g>
+</svg>

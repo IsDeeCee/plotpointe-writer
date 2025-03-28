@@ -1,0 +1,141 @@
+/* static/css/style.css */
+:root {
+    --primary-color: #07e42d;
+    --secondary-color: #74fab9;
+    --tertiary-color: #FF79C6;
+    --dark-bg: #040c00;
+    --light-text: #bcf7c3;
+    --frame-bg: #1E1E2E;
+    --success-color: #50FA7B;
+    --warning-color: #FFB86C;
+    --error-color: #FF5555;
+    --card-bg: #282A36;
+}
+
+body {
+    background-color: #f8f9fa;
+    color: #333;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Navbar Customization */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.navbar-dark .navbar-nav .nav-link.active {
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+/* Cards */
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover, .dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    border-top-left-radius: 10px !important;
+    border-top-right-radius: 10px !important;
+    font-weight: bold;
+}
+
+/* Hero Section */
+.hero-section {
+    padding: 3rem 0;
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+}
+
+.hero-image {
+    max-height: 400px;
+}
+
+/* Forms */
+.form-control, .form-select {
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(7, 228, 45, 0.25);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #06c327;
+    border-color: #06c327;
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: #212529;
+}
+
+/* Progress bar customization */
+.progress {
+    height: 0.75rem;
+    border-radius: 1rem;
+}
+
+.progress-bar-animated {
+    animation-duration: 1.5s;
+}
+
+/* Story and Plot output formatting */
+#storyContent p, #plotContent p {
+    margin-bottom: 1.2rem;
+    line-height: 1.6;
+}
+
+#plotContent h3 {
+    color: var(--primary-color);
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+}
+
+/* Footer */
+.footer {
+    margin-top: auto;
+    padding: 1.5rem 0;
+}
+
+/* Text areas */
+textarea.form-control {
+    min-height: 150px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .hero-section {
+        text-align: center;
+        padding: 2rem 0;
+    }
+    
+    .hero-image {
+        margin-top: 2rem;
+        max-height: 300px;
+    }
+}

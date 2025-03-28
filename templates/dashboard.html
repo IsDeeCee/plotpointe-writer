@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}PlotPointe Writer - Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h2 class="card-title">Welcome, {{ username }}!</h2>
+                <p class="card-text">What would you like to create today?</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100 dashboard-card">
+            <div class="card-body text-center">
+                <i class="fas fa-sync-alt fa-4x mb-3 text-primary"></i>
+                <h3 class="card-title">Script Rewriter</h3>
+                <p class="card-text">Transform existing scripts into fresh content while maintaining the original structure and emotional impact.</p>
+                <a href="{{ url_for('script_rewriter') }}" class="btn btn-primary mt-3">Start Rewriting</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 dashboard-card">
+            <div class="card-body text-center">
+                <i class="fas fa-book-open fa-4x mb-3 text-primary"></i>
+                <h3 class="card-title">Story Writer</h3>
+                <p class="card-text">Generate complete, engaging stories from simple plot ideas with realistic characters and natural dialogue.</p>
+                <a href="{{ url_for('story_writer') }}" class="btn btn-primary mt-3">Write Stories</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 dashboard-card">
+            <div class="card-body text-center">
+                <i class="fas fa-project-diagram fa-4x mb-3 text-primary"></i>
+                <h3 class="card-title">Plot Generator</h3>
+                <p class="card-text">Create structured plot outlines with clear progression, conflicts, and resolutions for your next creative project.</p>
+                <a href="{{ url_for('plot_generator') }}" class="btn btn-primary mt-3">Generate Plots</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h4>Recent Updates</h4>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item bg-transparent">
+                        <span class="badge bg-success">New</span>
+                        Plot Generator now supports the "but therefore" narrative structure
+                    </li>
+                    <li class="list-group-item bg-transparent">
+                        <span class="badge bg-success">New</span>
+                        Story Writer can now generate stories up to 25,000 words
+                    </li>
+                    <li class="list-group-item bg-transparent">
+                        <span class="badge bg-info">Improved</span>
+                        Script Rewriter now maintains character consistency more effectively
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
